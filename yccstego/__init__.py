@@ -4,4 +4,4 @@ from . import color, dct, huffman, jpeg_codec, nsf5, steganalysis, api
 
 __all__ = ["YCC", "color", "dct", "huffman", "jpeg_codec", "nsf5",
            "steganalysis", "api"]
-__version__ = "0.1.0"
+__version__ = "0.1.1"
