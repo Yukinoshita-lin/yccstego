@@ -1,13 +1,27 @@
 # yccstego —— YCC(YCbCr) 亮度通道 nsF5 隐写工具
 
+<p align="center">
+  <a href="https://pypi.org/project/yccstego/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/yccstego"></a>
+  <a href="https://pypi.org/project/yccstego/"><img alt="PyPI - Python" src="https://img.shields.io/pypi/pyversions/yccstego"></a>
+  <a href="https://pypi.org/project/yccstego/"><img alt="PyPI - Downloads" src="https://img.shields.io/pypi/dm/yccstego"></a>
+  <a href="https://github.com/Yukinoshita-lin/yccstego/releases"><img alt="GitHub - Release" src="https://img.shields.io/github/v/release/Yukinoshita-lin/yccstego"></a>
+</p>
+
 在 JPEG 压缩域中对 YCbCr 的 **Y（亮度）通道量化 DCT 系数** 实施 nsF5 伴随式矩阵编码隐写。
 自实现标准 JPEG(DCT+量化+Huffman) 编解码，保证量化系数在“保存→解析”后逐位一致，
 从而实现压缩域无失真往返嵌入。
 
 ## 安装
 ```bash
+# 从 PyPI 安装
+pip install yccstego
+```
+```bash
+# 或本地源码开发模式安装
 pip install -e .
 ```
+> 控制台命令 `yccstego` 依赖 Python 的 `Scripts` 目录在 PATH 中；
+> 若未配置可用 `python -m yccstego.cli`。
 
 ## 用法（CLI）
 ```bash
