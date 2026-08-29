@@ -67,6 +67,17 @@ def test_roundtrip_ascii(p=3):
     assert hm is True
 
 
+CHN = ("中文隐写测试 YCC 亮度通道 携秘密 123456 " * 2).strip()
+
+
+def test_roundtrip_chinese():
+    for p in (1, 2, 3, 4):
+        back, rep = embed_roundtrip(CHN, p, "pw")
+        out, cov, tampered, hm = nsf5.extract_from_y(back.Y, back.Cb, back.Cr, p=p, password="pw")
+        assert out == CHN, f"p={p} Chinese message mismatch"
+        assert hm is True and tampered is False
+
+
 def test_wrong_password_fails():
     back, _ = embed_roundtrip("secret-message", 3, "pw-a")
     out, *_ = nsf5.extract_from_y(back.Y, back.Cb, back.Cr, p=3, password="pw-b")
@@ -106,6 +117,10 @@ def _main():
             test_roundtrip_ascii(p); print(f"PASS test_roundtrip_ascii p={p}")
         except AssertionError as e:
             failures += 1; print(f"FAIL test_roundtrip_ascii p={p}: {e}")
+    try:
+        test_roundtrip_chinese(); print("PASS test_roundtrip_chinese")
+    except Exception as e:
+        failures += 1; print(f"FAIL test_roundtrip_chinese: {e!r}")
     for name in ["test_wrong_password_fails", "test_chroma_tamper_detected",
                  "test_y_body_tamper_detected", "test_capacity_error"]:
         try:

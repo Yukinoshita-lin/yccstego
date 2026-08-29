@@ -27,7 +27,7 @@ def _as_rgb(image) -> np.ndarray:
 
 
 def embed_bytes(rgb_image, text: str, p: int = 3, password: str = "", quality: int = 85):
-    """在图像上嵌入 ASCII 文本，返回 (.jpg bytes, report)。
+    """在图像上嵌入任意文本（UTF-8，中英文均可），返回 (.jpg bytes, report)。
 
     rgb_image 支持 ndarray / bytes / 路径 / Pillow 对象。返回的字节是带隐写载荷的
     标准 JPEG（libjpeg/Pillow 可打开），从位流本身也可无损还原嵌入系数。

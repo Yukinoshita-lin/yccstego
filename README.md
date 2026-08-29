@@ -11,8 +11,8 @@ pip install -e .
 
 ## 用法（CLI）
 ```bash
-# 嵌入
-yccstego embed in.png out.jpg -m "hello ycc" -p 3 -k 口令
+# 嵌入（消息 UTF-8，中英文均可）
+yccstego embed in.png out.jpg -m "你好，ycc stego" -p 3 -k 口令
 # 解码
 yccstego extract out.jpg -p 3 -k 口令
 # 隐写分析

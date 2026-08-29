@@ -26,7 +26,7 @@ from typing import Optional, Sequence
 
 import numpy as np
 
-MSG_HEADER_BITS = 16    # ASCII 字节数（两字节长度头，≤65535）
+MSG_HEADER_BITS = 16    # UTF-8 字节数（两字节长度头，≤65535；中文每字 3 字节）
 COVER_HASH_BYTES = 16   # 认证头：sha256 截取前 16 字节（128 bit）
 
 
@@ -87,13 +87,13 @@ def permute_index(total: int, seed: int) -> np.ndarray:
 
 
 # --------------------------------------------------------------------------- #
-#  消息编码：ASCII ↔ 比特（16 位长度头）
+#  消息编码：字符串 ↔ 比特（UTF-8，16 位字节长度头）
 # --------------------------------------------------------------------------- #
 def encode_string(text: str) -> np.ndarray:
-    raw = text.encode("ascii", errors="replace")
+    raw = text.encode("utf-8")   # 任意 Unicode（中文等）→ UTF-8 字节流
     length = len(raw)
     if length > 0xFFFF:
-        raise ValueError("ASCII 文本过长（≤65535 字节）")
+        raise ValueError("文本过长（≤65535 字节）")
     head = np.array([(length >> i) & 1 for i in range(MSG_HEADER_BITS)], np.uint8)
     body = np.unpackbits(np.frombuffer(raw, dtype=np.uint8))
     return np.concatenate([head, body])
@@ -106,7 +106,10 @@ def decode_string(bits: np.ndarray) -> str:
     body = bits[MSG_HEADER_BITS:MSG_HEADER_BITS + length * 8]
     if body.size < length * 8:
         raise ValueError("有效载荷不足，消息可能被截断或被破坏")
-    return bytes(np.packbits(body[:length * 8])).decode("ascii", errors="replace")
+    try:
+        return bytes(np.packbits(body[:length * 8])).decode("utf-8")
+    except UnicodeDecodeError:
+        raise ValueError("提取字节非法（UTF-8），消息可能被篡改或已损坏")
 
 
 # --------------------------------------------------------------------------- #

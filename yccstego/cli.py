@@ -93,7 +93,7 @@ def build_parser():
     e = sub.add_parser("embed", help="向图像嵌入文本")
     e.add_argument("infile", help="输入图像（png/jpg/...）")
     e.add_argument("outfile", help="输出 .jpg")
-    e.add_argument("-m", "--message", required=True, help="要嵌入的 ASCII 文本")
+    e.add_argument("-m", "--message", required=True, help="要嵌入的文本（UTF-8，中英文均可）")
     e.add_argument("-p", "--p", type=int, default=3, help="矩阵编码参数 p（1..8，默认3）")
     e.add_argument("-k", "--password", default="", help="口令（可选）")
     e.add_argument("-q", "--quality", type=int, default=85, help="JPEG 质量（1..100）")
