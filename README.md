@@ -13,6 +13,8 @@ pip install -e .
 ```bash
 # 嵌入（消息 UTF-8，中英文均可）
 yccstego embed in.png out.jpg -m "你好，ycc stego" -p 3 -k 口令
+# 消息超容量时按 UTF-8 安全截断（默认则报错）
+yccstego embed small.png out.jpg -m "很长很长的中文…" -p 3 -k 口令 --truncate
 # 解码
 yccstego extract out.jpg -p 3 -k 口令
 # 隐写分析

@@ -21,19 +21,23 @@ def _out_jpg(path, data: bytes):
 
 def cmd_embed(args):
     try:
-        jpg_bytes, rep = _embed_impl(args.infile, args.message, args.p, args.password, args.quality)
+        jpg_bytes, rep = _embed_impl(args.infile, args.message, args.p, args.password,
+                                     args.quality, args.truncate)
     except Exception as e:
         print(f"[错误] {e}", file=sys.stderr); sys.exit(2)
     _out_jpg(args.outfile, jpg_bytes)
     print(f"已嵌入 → {args.outfile}  ({len(jpg_bytes)} 字节)")
     print(f"  正文载体数：{rep['body_pool']}  画像哈希：{rep['cover_hash']}")
+    if rep.get("truncated"):
+        print(f"  提示：消息超容量，已按 UTF-8 安全截断为 {rep['embedded_chars']} 字符")
     if args.json:
         print(json.dumps({**rep, "outfile": args.outfile}, ensure_ascii=False))
 
 
-def _embed_impl(infile, message, p, password, quality):
+def _embed_impl(infile, message, p, password, quality, truncate=False):
     from .api import embed_bytes
-    return embed_bytes(infile, message, p=p, password=password, quality=quality)
+    return embed_bytes(infile, message, p=p, password=password, quality=quality,
+                       truncate=truncate)
 
 
 def cmd_extract(args):
@@ -97,6 +101,8 @@ def build_parser():
     e.add_argument("-p", "--p", type=int, default=3, help="矩阵编码参数 p（1..8，默认3）")
     e.add_argument("-k", "--password", default="", help="口令（可选）")
     e.add_argument("-q", "--quality", type=int, default=85, help="JPEG 质量（1..100）")
+    e.add_argument("-t", "--truncate", action="store_true",
+                   help="消息超容量时按 UTF-8 安全截断（默认超容量则报错）")
     e.add_argument("--json", action="store_true")
     e.set_defaults(func=cmd_embed)
 

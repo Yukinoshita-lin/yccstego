@@ -26,15 +26,18 @@ def _as_rgb(image) -> np.ndarray:
     return np.ascontiguousarray(a.astype(np.uint8))
 
 
-def embed_bytes(rgb_image, text: str, p: int = 3, password: str = "", quality: int = 85):
+def embed_bytes(rgb_image, text: str, p: int = 3, password: str = "", quality: int = 85,
+                truncate: bool = False):
     """在图像上嵌入任意文本（UTF-8，中英文均可），返回 (.jpg bytes, report)。
 
     rgb_image 支持 ndarray / bytes / 路径 / Pillow 对象。返回的字节是带隐写载荷的
     标准 JPEG（libjpeg/Pillow 可打开），从位流本身也可无损还原嵌入系数。
+    消息超出容量时：truncate=False 抛 CapacityError；truncate=True 安全截断。
     """
     rgb = _as_rgb(rgb_image)
     c0 = J.YCC(rgb, quality)
-    y_new, rep = nsf5.embed_into_y(c0.Y, c0.Cb, c0.Cr, text, p=p, password=password)
+    y_new, rep = nsf5.embed_into_y(c0.Y, c0.Cb, c0.Cr, text, p=p, password=password,
+                                   truncate=truncate)
     c1 = J.YCC.__new__(J.YCC)
     c1.h, c1.w, c1.orig_shape, c1.quality = c0.h, c0.w, c0.orig_shape, quality
     c1.qlum, c1.qchr = c0.qlum, c0.qchr

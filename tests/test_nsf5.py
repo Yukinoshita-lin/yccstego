@@ -110,6 +110,34 @@ def test_capacity_error():
         pass
 
 
+def test_truncate_over_capacity():
+    rgb = make_rgb(64, 64)      # 有头部池与少量正文池，但放不下超长中文
+    c0 = J.YCC(rgb, 85)
+    long_msg = ("中文隐写消息，长度远超这张图能容纳的载荷容量，测试 UTF-8 安全截断行为，"
+                "确保不会产生半个汉字，" * 10)
+    y, rep = nsf5.embed_into_y(c0.Y, c0.Cb, c0.Cr, long_msg, p=3, password="pw",
+                               truncate=True)
+    assert rep["truncated"] is True
+    assert 0 < rep["embedded_chars"] < len(long_msg)
+    # 截断结果必须能原样往返提取，且是原消息的合法 UTF-8 前缀
+    out, cov, tampered, hm = nsf5.extract_from_y(y, c0.Cb, c0.Cr, p=3, password="pw")
+    assert hm is True and tampered is False
+    assert long_msg.startswith(out)
+
+    # 超容量但未开 truncate 仍然抛错
+    try:
+        nsf5.embed_into_y(c0.Y, c0.Cb, c0.Cr, long_msg, p=3, password="pw", truncate=False)
+        raise AssertionError("expected CapacityError when truncate=False")
+    except nsf5.CapacityError:
+        pass
+
+
+def test_truncate_noop_within_capacity():
+    c0 = J.YCC(make_rgb(128, 160), 85)
+    y, rep = nsf5.embed_into_y(c0.Y, c0.Cb, c0.Cr, CHN, p=3, password="pw", truncate=True)
+    assert rep["truncated"] is False  # 容量足够，不应截断
+
+
 def _main():
     failures = 0
     for p in P_LIST:
@@ -122,7 +150,8 @@ def _main():
     except Exception as e:
         failures += 1; print(f"FAIL test_roundtrip_chinese: {e!r}")
     for name in ["test_wrong_password_fails", "test_chroma_tamper_detected",
-                 "test_y_body_tamper_detected", "test_capacity_error"]:
+                 "test_y_body_tamper_detected", "test_capacity_error",
+                 "test_truncate_over_capacity", "test_truncate_noop_within_capacity"]:
         try:
             globals()[name](); print(f"PASS {name}")
         except Exception as e:

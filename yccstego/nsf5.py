@@ -261,10 +261,14 @@ def head_units(p: int) -> int:
 #  高层：面向 YCC 量化系数对象
 # --------------------------------------------------------------------------- #
 def embed_into_y(y: np.ndarray, cb: np.ndarray, cr: np.ndarray, msg: str,
-                 p: int = 3, password: str = "") -> tuple:
-    """在 Y 量化系数上嵌入 ASCII 消息。y/cb/cr: (·,·,8,8) int16。
+                 p: int = 3, password: str = "", truncate: bool = False) -> tuple:
+    """在 Y 量化系数上嵌入文本（UTF-8，中英文均可）。
 
-    返回 (new_y, report)：new_y 为嵌入后的 Y 网格，report 含 cover_hash / 容量统计。
+    y/cb/cr: (·,·,8,8) int16。返回 (new_y, report)：report 含 cover_hash / 容量统计。
+    当消息超出正文容量时：
+      - truncate=False（默认）：抛 CapacityError；
+      - truncate=True：安全截断到可容纳的最长 UTF-8 前缀（不产生半个字符），
+        report 中 truncated=True、embedded_chars=截断后字符数。
     """
     body_bits = encode_string(msg)
     if body_bits.size == 0:
@@ -283,6 +287,27 @@ def embed_into_y(y: np.ndarray, cb: np.ndarray, cr: np.ndarray, msg: str,
         raise CapacityError(f"图像太小：可用非零AC载体 {avail}，头部+正文至少需要 {N_h + n}")
     head_pool, body_pool = car[:N_h], car[N_h:]
 
+    did_truncate = False
+    need_body = (body_bits.size + p - 1) // p
+    if body_pool.size < need_body * n:
+        if not truncate:
+            raise CapacityError(f"正文载体不足：需要 {need_body * n}，仅有 {body_pool.size}")
+        max_load_bytes = max(0, (body_pool.size // n * p - MSG_HEADER_BITS) // 8)
+        tb = msg.encode("utf-8")[:max_load_bytes]
+        while tb:
+            try:
+                tb.decode("utf-8"); break
+            except UnicodeDecodeError:
+                tb = tb[:-1]
+        if not tb:
+            raise CapacityError("可用容量甚至放不下 1 个完整 UTF-8 字符，无法嵌入")
+        msg = tb.decode("utf-8")
+        body_bits = encode_string(msg)
+        need_body = (body_bits.size + p - 1) // p
+        if body_pool.size < need_body * n:
+            raise CapacityError(f"截断后仍超容量：需要 {need_body * n}，仅有 {body_pool.size}")
+        did_truncate = True
+
     # —— 头部池：seed0 = 仅口令 ——
     head_arr = np.unpackbits(np.frombuffer(cover_hash, np.uint8))
     head_pad = (-head_arr.size) % p
@@ -293,16 +318,14 @@ def embed_into_y(y: np.ndarray, cb: np.ndarray, cr: np.ndarray, msg: str,
     # —— 正文池：seed = cover_hash + 口令（不足 p 的尾块补齐，提取只取真实长度）——
     body_pad = (-body_bits.size) % p
     body_full = np.pad(body_bits, (0, body_pad))
-    need_body = (body_bits.size + p - 1) // p
-    if body_pool.size < need_body * n:
-        raise CapacityError(f"正文载体不足：需要 {need_body * n}，仅有 {body_pool.size}")
     _embed_pool(c, body_pool, permute_index(body_pool.size, derive_seed(cover_hash, password)),
                 body_full, p, H)
 
     changed = int(np.sum(out != np.asarray(y)))
     report = dict(cover_hash=cover_hash.hex(), head_pool=N_h,
                   body_pool=int(body_pool.size), carriers_changed=changed,
-                  capacity_bits=int(avail // n * p))
+                  capacity_bits=int(avail // n * p),
+                  truncated=did_truncate, embedded_chars=len(msg))
     return out, report
 
 
