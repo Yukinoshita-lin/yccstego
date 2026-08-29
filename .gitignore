@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# 隐写/图数据产出
+*.jpg
+*.png
+*.csv
+img/
+datasets/
+models/
+*.joblib
+
+# 编辑器/系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
