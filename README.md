@@ -2,8 +2,8 @@
 
 <p align="center">
   <a href="https://pypi.org/project/yccstego/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/yccstego"></a>
-  <a href="https://pypi.org/project/yccstego/"><img alt="PyPI - Python" src="https://img.shields.io/pypi/pyversions/yccstego"></a>
-  <a href="https://pypi.org/project/yccstego/"><img alt="PyPI - Downloads" src="https://img.shields.io/pypi/dm/yccstego"></a>
+  <a href="https://pypi.org/project/yccstego/"><img alt="PyPI - Python" src="https://img.shields.io/pypi/pyversions/yccstego?cacheseconds=86400"></a>
+  <a href="https://pypi.org/project/yccstego/"><img alt="PyPI - Downloads" src="https://img.shields.io/pypi/dm/yccstego?cacheseconds=86400"></a>
   <a href="https://github.com/Yukinoshita-lin/yccstego/releases"><img alt="GitHub - Release" src="https://img.shields.io/github/v/release/Yukinoshita-lin/yccstego"></a>
 </p>
 

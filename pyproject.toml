@@ -4,11 +4,18 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "yccstego"
-version = "0.1.1"
+version = "0.1.2"
 description = "JPEG compression-domain nsF5 steganography on the Y (luma) channel of YCbCr with self-contained DCT+Huffman codec"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["numpy", "Pillow"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
 
 [project.scripts]
 yccstego = "yccstego.cli:main"
