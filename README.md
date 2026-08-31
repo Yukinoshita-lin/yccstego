@@ -5,6 +5,7 @@
   <a href="https://pypi.org/project/yccstego/"><img alt="PyPI - Python" src="https://img.shields.io/pypi/pyversions/yccstego?cacheseconds=86400"></a>
   <a href="https://pypi.org/project/yccstego/"><img alt="PyPI - Downloads" src="https://img.shields.io/pypi/dm/yccstego?cacheseconds=86400"></a>
   <a href="https://github.com/Yukinoshita-lin/yccstego/releases"><img alt="GitHub - Release" src="https://img.shields.io/github/v/release/Yukinoshita-lin/yccstego"></a>
+  <a href="https://github.com/Yukinoshita-lin/yccstego/blob/main/LICENSE"><img alt="GitHub - License" src="https://img.shields.io/github/license/Yukinoshita-lin/yccstego"></a>
 </p>
 
 在 JPEG 压缩域中对 YCbCr 的 **Y（亮度）通道量化 DCT 系数** 实施 nsF5 伴随式矩阵编码隐写。
