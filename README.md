@@ -44,3 +44,7 @@ yccstego analyze out.jpg
 - `yccstego/nsf5.py`   Y 亮度量化 DCT 系数上的 nsF5 嵌入/提取(伴随式+湿纸+块置乱+图像哈希自同步)
 - `yccstego/steganalysis.py` YCC 域盲隐写分析
 - `yccstego/cli.py`   命令行入口
+
+## 许可
+
+本项目基于 **Apache License 2.0** 发布，详见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。

@@ -1,0 +1,85 @@
+yccstego
+Copyright 2026 Yukinoshita-lin
+
+This product includes software developed by Yukinoshita-lin.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License. You may obtain a copy
+of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations
+under the License.
+
+================================================================================
+Third-Party Software Notices and Attributions
+================================================================================
+
+This project depends on the following third-party software, which are
+licensed under their respective open-source licenses. The full license
+texts are available in the upstream project repositories.
+
+--------------------------------------------------------------------------------
+
+1. NumPy
+   - Version: >= 1.20
+   - License: BSD-3-Clause
+   - URL:    https://numpy.org
+   - Used for: array operations, DCT/IDCT, quantization tables,
+              byte-stream assembly, and JPEG Huffman coding/decoding.
+
+2. Pillow (PIL Fork)
+   - Version: >= 9.0
+   - License: HPND (Historical Permission Notice and Disclaimer)
+   - URL:    https://python-pillow.org
+   - Used for: JPEG file I/O (open/save), YCbCr<->RGB conversion,
+              and verification of decoded cover images.
+
+================================================================================
+Reference Implementations and Algorithms
+================================================================================
+
+The algorithms implemented in this project are based on the following
+public-domain academic references and the published JPEG / Huffman /
+DCT specifications. No source code was copied; only the published
+specifications were followed.
+
+  - Independent JPEG Group, "JPEG Standard (JPEG ISO/IEC 10918-1)",
+    ITU-T T.81, 1992.
+  - J. Fridrich, T. Pevný, J. Kodovský, "Statistically undetectable
+    JPEG steganography: dead ends, challenges, and possible alternatives",
+    Information Hiding Workshop (IH), 2007.
+  - J. Fridrich, "Steganography in Digital Media: Principles, Algorithms,
+    and Applications", Cambridge University Press, 2009.
+  - J. Fridrich, M. Goljan, "On steganographic embedding capacity
+    (and why it matters)", Security, Steganography, and Watermarking
+    of Multimedia Contents X, SPIE, 2008.
+
+================================================================================
+Bundled Sub-Projects
+================================================================================
+
+This package is shipped alongside its parent project:
+
+  nsf5stego — spatial-domain nsF5 steganography with blind steganalysis
+              and a GUI, located at the parent directory of this package.
+    Copyright 2026 Yushitayuri <dev@example.com>
+    License: Apache-2.0
+    License file: ../LICENSE
+    NOTICE file:    ../NOTICE
+
+The two packages are independent: each has its own LICENSE and NOTICE.
+They are co-developed and co-distributed for convenience.
+
+================================================================================
+Trademark Notice
+================================================================================
+
+"Apache" is a registered trademark of the Apache Software Foundation.
+The Apache License, Version 2.0 is published by the Apache Software
+Foundation; this project is NOT affiliated with or endorsed by the
+Apache Software Foundation.
