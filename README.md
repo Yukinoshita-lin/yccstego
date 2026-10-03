@@ -12,6 +12,10 @@
 自实现标准 JPEG(DCT+量化+Huffman) 编解码，保证量化系数在“保存→解析”后逐位一致，
 从而实现压缩域无失真往返嵌入。
 
+**0.2.0 起嵌入逐字节确定**：湿纸求解的遍历种子由（干点集合，目标伴随式）派生，
+相同输入得到完全相同的输出字节（跨进程/跨机器一致），实验可复现、可写进回归测试；
+旧版（≤0.1.4）生成的含密图仍可正常解码。
+
 ## 安装
 ```bash
 # 从 PyPI 安装
@@ -35,6 +39,25 @@ yccstego extract out.jpg -p 3 -k 口令
 # 隐写分析
 yccstego analyze out.jpg
 ```
+
+## 确定性与修改轨迹（0.2.0）
+```python
+import yccstego.api as api
+jpg1, _ = api.embed_bytes("cover.png", "同一段话", p=3)
+jpg2, _ = api.embed_bytes("cover.png", "同一段话", p=3)
+assert jpg1 == jpg2                       # 逐字节一致
+
+jpg, rep = api.embed_bytes("cover.png", "看算法", p=3, trace=True)
+for ch in rep["changes"]:                 # 每个被修改系数的轨迹
+    print(ch["block"], ch["rc"], f'{ch["from"]}->{ch["to"]}', ch["kind"], ch["pool"])
+# kind: shrink=减幅 / wet=湿纸方程解 / boost=升幅兜底; pool: head=认证头 / body=正文
+```
+`report` 同时新增 `wet_points`（嵌入前载体中 |c|=1 的湿点个数）。
+
+## 与 nsf5stego 主线的关系
+本项目保持独立仓库/独立发版；自 [nsf5stego](https://github.com/Yukinoshita-lin/nsf5-steganography)
+v1.9.0 起被其作为依赖集成（Python≥3.10 自动安装），经桥接层提供 CLI `--jpeg`、
+GUI"JPEG 域"模式与实验档案 repro 的字节级重跑校验。两侧算法行为保持一致。
 
 ## 结构
 - `yccstego/color.py`  RGB↔YCbCr(BT.601) 与 4:2:0 子采样

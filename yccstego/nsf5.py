@@ -115,7 +115,15 @@ def decode_string(bits: np.ndarray) -> str:
 # --------------------------------------------------------------------------- #
 #  湿纸求解：在"干"列上找尽量稀疏的解 H[:,dry]·y = target
 # --------------------------------------------------------------------------- #
-def solve_wet_paper(H, dry_cols: Sequence[int], target, max_weight: int = 2):
+def solve_wet_paper(H, dry_cols: Sequence[int], target, max_weight: int = 2,
+                    seed: int | None = None):
+    """在"干"列上找尽量稀疏的解 H[:,dry]·y = target。
+
+    返回只在若干干列上为 1 的向量 e (长度 = H 列数), 使 H·e = target (mod 2)。
+    无解或干列不足时返回 None。seed 决定"成对异或"的遍历顺序, 缺省由
+    (干点集合, 目标伴随式) 派生 —— 相同输入 -> 相同输出, 跨进程/跨机器逐位
+    一致 (0.2.0 起, 与主项目 ns5_core 同一套派生公式; 旧版用全局 RNG, 嵌入
+    结果不可复现。提取路径与本参数无关, 旧版生成的含密图仍可正常解码)。"""
     dry = np.asarray(list(dry_cols), dtype=np.int64)
     if dry.size == 0:
         return None
@@ -125,7 +133,11 @@ def solve_wet_paper(H, dry_cols: Sequence[int], target, max_weight: int = 2):
         if np.array_equal(H[:, ci], target):
             e = np.zeros(n, np.uint8); e[ci] = 1; return e
     if max_weight >= 2 and dry.size >= 2:
-        rng = np.random.default_rng(int(np.random.randint(0, 1 << 30)))
+        if seed is None:
+            seed = int(hashlib.sha256(
+                np.ascontiguousarray(dry).tobytes() +
+                np.ascontiguousarray(target).tobytes()).hexdigest(), 16) & ((1 << 32) - 1)
+        rng = np.random.default_rng(seed)
         order = rng.permutation(dry.size)
         limit = min(dry.size, 600)
         for a in range(limit):
@@ -189,7 +201,7 @@ def _carrier_indices(y_flat: np.ndarray) -> np.ndarray:
 # --------------------------------------------------------------------------- #
 #  单块伴随式编码：F5 减幅 + 湿纸，无收缩
 # --------------------------------------------------------------------------- #
-def _embed_block(c: np.ndarray, block_pos, m, H):
+def _embed_block(c: np.ndarray, block_pos, m, H, trace=None, pool=None):
     p = H.shape[0]
     n = H.shape[1]
     xv = c[block_pos].astype(np.int64)
@@ -199,17 +211,34 @@ def _embed_block(c: np.ndarray, block_pos, m, H):
         return
     d = (s ^ m).astype(np.uint8)
     tc = int(np.where(np.all(H == d[:, None], axis=0))[0][0])
+
+    def _record(j, old, new, kind):
+        # trace: 给教学可视化用的修改轨迹 (0.2.0)。cell 为全图扁平系数下标,
+        # rc 为块内 (行,列); kind: shrink=减幅 / wet=湿纸方程解 / boost=升幅兜底
+        if trace is not None:
+            cell = int(block_pos[j])
+            trace.append({"cell": cell, "block": cell // 64,
+                          "rc": [(cell % 64) // 8, (cell % 64) % 8],
+                          "pool": pool, "kind": kind,
+                          "from": int(old), "to": int(new)})
+
     if abs(xv[tc]) > 1:
-        c[block_pos[tc]] = (xv[tc] - np.sign(xv[tc])).astype(np.int16)
+        new = xv[tc] - np.sign(xv[tc])
+        _record(tc, xv[tc], new, "shrink")
+        c[block_pos[tc]] = np.int16(new)
         return
     dry = [j for j in range(n) if abs(xv[j]) > 1]
     e = solve_wet_paper(H, dry, d, max_weight=2)
     if e is not None:
         for j in np.where(e == 1)[0]:
             v = xv[j]
-            c[block_pos[j]] = (v - np.sign(v)).astype(np.int16)
+            new = v - np.sign(v)
+            _record(int(j), v, new, "wet")
+            c[block_pos[j]] = np.int16(new)
         return
-    c[block_pos[tc]] = (2 * np.sign(xv[tc])).astype(np.int16)
+    new = 2 * np.sign(xv[tc])
+    _record(tc, xv[tc], new, "boost")
+    c[block_pos[tc]] = np.int16(new)
 
 
 def _extract_block(c: np.ndarray, block_pos, H):
@@ -220,14 +249,14 @@ def _extract_block(c: np.ndarray, block_pos, H):
 # --------------------------------------------------------------------------- #
 #  池内嵌 / 取：在 carriers 的一段（池）内，按池内置换分块连续埋入比特
 # --------------------------------------------------------------------------- #
-def _embed_pool(c, cells, pool_perm, bits, p, H):
+def _embed_pool(c, cells, pool_perm, bits, p, H, trace=None, pool=None):
     """cells: 该池覆盖的载体（已按扁平序排序）；pool_perm: 池内置换；就地改 c。"""
     n = (1 << p) - 1
     nb = (bits.size + p - 1) // p
     M = cells.size
     for bi in range(min(nb, M // n)):
         blk = cells[pool_perm[bi * n:(bi + 1) * n]]
-        _embed_block(c, blk, bits[bi * p:(bi + 1) * p], H)
+        _embed_block(c, blk, bits[bi * p:(bi + 1) * p], H, trace, pool)
 
 
 def _extract_pool(c, cells, pool_perm, num_bits, p, H) -> np.ndarray:
@@ -261,7 +290,8 @@ def head_units(p: int) -> int:
 #  高层：面向 YCC 量化系数对象
 # --------------------------------------------------------------------------- #
 def embed_into_y(y: np.ndarray, cb: np.ndarray, cr: np.ndarray, msg: str,
-                 p: int = 3, password: str = "", truncate: bool = False) -> tuple:
+                 p: int = 3, password: str = "", truncate: bool = False,
+                 trace: bool = False) -> tuple:
     """在 Y 量化系数上嵌入文本（UTF-8，中英文均可）。
 
     y/cb/cr: (·,·,8,8) int16。返回 (new_y, report)：report 含 cover_hash / 容量统计。
@@ -269,6 +299,9 @@ def embed_into_y(y: np.ndarray, cb: np.ndarray, cr: np.ndarray, msg: str,
       - truncate=False（默认）：抛 CapacityError；
       - truncate=True：安全截断到可容纳的最长 UTF-8 前缀（不产生半个字符），
         report 中 truncated=True、embedded_chars=截断后字符数。
+    trace=True 时 report 附带 changes：每个被修改系数的轨迹
+    (cell/block/rc/pool/kind/from/to)，供可视化"看见算法正在发生什么"。
+    0.2.0 起嵌入逐字节确定：相同 (y,cb,cr, msg, p, password, quality) -> 相同输出。
     """
     body_bits = encode_string(msg)
     if body_bits.size == 0:
@@ -280,6 +313,7 @@ def embed_into_y(y: np.ndarray, cb: np.ndarray, cr: np.ndarray, msg: str,
     out = np.asarray(y).copy()
     c = out.reshape(-1)
     car = _carrier_indices(c)
+    wet_points = int(np.sum(np.abs(c[car]) == 1))   # 湿点统计 (嵌入前的载体现状)
 
     N_h = head_units(p)
     avail = car.size
@@ -312,20 +346,23 @@ def embed_into_y(y: np.ndarray, cb: np.ndarray, cr: np.ndarray, msg: str,
     head_arr = np.unpackbits(np.frombuffer(cover_hash, np.uint8))
     head_pad = (-head_arr.size) % p
     head_full = np.pad(head_arr, (0, head_pad))
+    trace_list = [] if trace else None
     _embed_pool(c, head_pool, permute_index(head_pool.size, derive_seed(b"", password)),
-                head_full, p, H)
+                head_full, p, H, trace_list, "head")
 
     # —— 正文池：seed = cover_hash + 口令（不足 p 的尾块补齐，提取只取真实长度）——
     body_pad = (-body_bits.size) % p
     body_full = np.pad(body_bits, (0, body_pad))
     _embed_pool(c, body_pool, permute_index(body_pool.size, derive_seed(cover_hash, password)),
-                body_full, p, H)
+                body_full, p, H, trace_list, "body")
 
     changed = int(np.sum(out != np.asarray(y)))
     report = dict(cover_hash=cover_hash.hex(), head_pool=N_h,
                   body_pool=int(body_pool.size), carriers_changed=changed,
-                  capacity_bits=int(avail // n * p),
+                  capacity_bits=int(avail // n * p), wet_points=wet_points,
                   truncated=did_truncate, embedded_chars=len(msg))
+    if trace:
+        report["changes"] = trace_list
     return out, report
 
 

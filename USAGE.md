@@ -103,7 +103,18 @@ msg, cover_hash, tampered, head_match = api.extract_bytes(
 
 # 隐写分析（返回 DCT 域 + 像素域两套结论）
 ana = api.analyze_bytes(jpg_bytes, sensitivity="均衡")
+
+# 修改轨迹（教学可视化：看见每个系数的 from -> to）
+jpg, rep = api.embed_bytes("cover.png", "看算法", p=3, trace=True)
+print(rep["changes"][:2], "湿点:", rep["wet_points"])
 ```
+
+### 4.1 确定性（0.2.0 起）
+
+湿纸求解的遍历种子由（干点集合，目标伴随式）派生，**相同输入 -> 完全相同的输出
+字节**，跨进程/跨机器一致；不再使用全局随机数，实验可写进回归测试。旧版
+（≤0.1.4）生成的含密图仍可正常解码——提取路径未变，变的只是嵌入时"改哪些系数"
+的选择从随机变为确定。
 
 ---
 
