@@ -1,0 +1,45 @@
+# 发版流程 (2026-10-03): 打 v* tag 即构建并上传 PyPI。
+#
+# 为什么走 Actions 而不是本地 twine: upload.pypi.org 在本地网络被 SNI 网关
+# 重定向到无关服务器 (证书域名不匹配), 直连不可用; GitHub runner 不受影响。
+# token 用仓库 secret PYPI_API_TOKEN (与 nsf5stego 同一套 PyPI 账号)。
+#
+# 手动触发 (workflow_dispatch) 只构建 + twine check, 不上传 —— 真正上传
+# 必须打 v* tag, 防止误触把未定版内容发出去。twine --skip-existing 让
+# 同文件重传 (tag 挪动重跑) 不至于红整条流水线。
+
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions: {}
+
+jobs:
+  pypi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 安装构建工具
+        run: python -m pip install build twine
+
+      - name: 构建 sdist + wheel
+        run: python -m build
+
+      - name: twine check (长描述/元数据)
+        run: python -m twine check dist/*
+
+      - name: 上传 PyPI (仅 v* tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: python -m twine upload --non-interactive --skip-existing dist/*
