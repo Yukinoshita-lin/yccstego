@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import numpy as np
 
-# BT.601 full-swing 系数 (0..255)
-KR, KG, KB = 0.114, 0.587, 0.299
+# BT.601 full-swing 系数 (0..255): Y = 0.299R + 0.587G + 0.114B
+KR, KG, KB = 0.299, 0.587, 0.114
 
 
 def rgb2ycbcr(rgb: np.ndarray) -> np.ndarray:

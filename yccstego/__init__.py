@@ -4,4 +4,4 @@ from . import color, dct, huffman, jpeg_codec, nsf5, steganalysis, api
 
 __all__ = ["YCC", "color", "dct", "huffman", "jpeg_codec", "nsf5",
            "steganalysis", "api"]
-__version__ = "0.2.0"   # 与 pyproject.toml 同步 (0.1.x 时代曾漂移, 勿再各改各的)
+__version__ = "0.2.1"   # 与 pyproject.toml 同步 (0.1.x 时代曾漂移, 勿再各改各的)

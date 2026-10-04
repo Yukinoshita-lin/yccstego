@@ -29,7 +29,8 @@ def _matrices():
 
 
 def split_blocks(ch: np.ndarray) -> np.ndarray:
-    """单通道 (H,W) float -> (H/8, W/8, 8, 8)。pad 到 8 的倍数。"""
+    """单通道 (H,W) float -> (H/8, W/8, 8, 8)。pad 到 8 的倍数。
+    blocks[i, j, u, v] == ch[i*8+u, j*8+v] (与 join_blocks 严格互逆)。"""
     H, W = ch.shape
     Hp = int(np.ceil(H / BLOCK)) * BLOCK
     Wp = int(np.ceil(W / BLOCK)) * BLOCK
@@ -39,7 +40,9 @@ def split_blocks(ch: np.ndarray) -> np.ndarray:
     p[H:, :W] = ch[-1:, :]
     p[:H, W:] = ch[:, -1:]
     p[H:, W:] = ch[-1, -1]
-    return p.reshape(Hp // BLOCK, Wp // BLOCK, BLOCK, BLOCK)
+    # 直接 reshape(Hp/8, Wp/8, 8, 8) 会按一维缓冲重排, 块内容被打乱;
+    # 先 (行, 行内偏移, 列, 列内偏移) 再转置才是真正的 8x8 分块。
+    return p.reshape(Hp // BLOCK, BLOCK, Wp // BLOCK, BLOCK).transpose(0, 2, 1, 3)
 
 
 def join_blocks(blocks: np.ndarray, shape: tuple) -> np.ndarray:
@@ -50,21 +53,21 @@ def join_blocks(blocks: np.ndarray, shape: tuple) -> np.ndarray:
 
 
 def dct_blocks(blocks: np.ndarray) -> np.ndarray:
-    """沿每块做 2D DCT。blocks:(...,8,8)。"""
+    """沿每块做标准 2D DCT-II: F = A · x · Aᵀ。blocks:(...,8,8)。"""
     A, _ = _matrices()
     # 变形为 (N,8,8)
     s = blocks.shape
     x = blocks.reshape(-1, 8, 8)
-    f = np.einsum("ij,njk,kl->nil", A, x, A, optimize=True)
+    f = np.einsum("ij,njk,lk->nil", A, x, A, optimize=True)
     return f.reshape(s)
 
 
 def idct_blocks(freq: np.ndarray) -> np.ndarray:
-    """freq:(...,8,8) -> 空间块。"""
+    """freq:(...,8,8) -> 空间块。x = Aᵀ · F · A。"""
     _, AI = _matrices()
     s = freq.shape
     f = freq.reshape(-1, 8, 8)
-    x = np.einsum("ij,njk,kl->nil", AI, f, AI, optimize=True)
+    x = np.einsum("ij,njk,lk->nil", AI, f, AI, optimize=True)
     return x.reshape(s)
 
 

@@ -50,7 +50,9 @@ class YCC:
         self.Cr = self._forward(C.subsample(ycc[..., 2]), self.qchr)
 
     def _forward(self, ch, qt):
-        blocks = D.split_blocks(ch)
+        # JPEG 标准电平偏移: FDCT 前减 128, IDCT 后 (见 _inv) 加回 128。
+        # 缺了这一步, 亮度 >=127 的像素在重建时全部饱和, 色度整体抬到 255。
+        blocks = D.split_blocks(ch - 128.0)
         return np.round(D.dct_blocks(blocks) / qt.astype(np.float64)[None, None]).astype(np.int16)
 
     # ----------------------------------------------------- 重建预览
